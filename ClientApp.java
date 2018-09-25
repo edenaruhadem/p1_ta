@@ -29,6 +29,7 @@ import com.amazonaws.services.sqs.model.DeleteMessageRequest;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
+import com.amazonaws.services.sqs.model.AmazonSQSException;
 //Servlet libraries
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
@@ -56,8 +57,10 @@ public class ClientApp
                     e);
     }  	
 	AmazonS3 s3 = new AmazonS3Client(credentials);
+	AmazonSQS sqs = new AmazonSQSClient(credentials);
 	Region euWest1 = Region.getRegion(Regions.EU_WEST_1);
-	s3.setRegion(euWest1);
+	s3.setRegion(euWest1);		
+	sqs.setRegion(euWest1);
 	String bucket_name = null;	
 	System.out.println("Listing existing buckets...");
 	for (Bucket bucket : s3.listBuckets())
@@ -68,7 +71,7 @@ public class ClientApp
 	if (bucket_name == null)
 	{
 		bucket_name = "bucketatest2018";	    
-	    try
+	    try //Creating a bucket
 	    {
 	        s3.createBucket(bucket_name);
 	        System.out.format("Creating %s.\n", bucket_name);
@@ -80,14 +83,66 @@ public class ClientApp
 	}
 	else
 	{
-		try 
+		try //Deleting the bucket
 		{
 		    s3.deleteBucket(bucket_name);
-		    System.out.format("Deleting %s", bucket_name);
+		    System.out.format("Deleting %s", bucket_name);		    
 		} catch (AmazonS3Exception e) 
 		{
 		    System.err.println(e.getErrorMessage());
 		}
-	}		
+	}
+	//Creating queues...	
+	CreateQueueRequest create_request_inbox = new CreateQueueRequest("Inbox")
+	        .addAttributesEntry("DelaySeconds", "60")
+	        .addAttributesEntry("MessageRetentionPeriod", "86400");
+	try 
+	{
+	    sqs.createQueue(create_request_inbox);
+	} catch (AmazonSQSException e) 
+	{
+	    if (!e.getErrorCode().equals("QueueAlreadyExists")) 
+	    {
+	        throw e;
+	    }
+	}
+	CreateQueueRequest create_request_outbox = new CreateQueueRequest("Outbox")
+	        .addAttributesEntry("DelaySeconds", "60")
+	        .addAttributesEntry("MessageRetentionPeriod", "86400");
+	try 
+	{
+	    sqs.createQueue(create_request_outbox);
+	} catch (AmazonSQSException e) 
+	{
+	    if (!e.getErrorCode().equals("QueueAlreadyExists")) 
+	    {
+	        throw e;
+	    }
+	}
+	System.out.println("The Inbox and Outbox Queue were created");
+	String queue_url_inbox = sqs.getQueueUrl("Inbox").getQueueUrl();
+	String queue_url_outbox = sqs.getQueueUrl("Outbox").getQueueUrl();
+	//System.out.format("The URL is %s", queue_url);	
+	
+	//Sending messages
+	SendMessageRequest send_msg_request = new SendMessageRequest()
+	        .withQueueUrl(queue_url_inbox)
+	        .withMessageBody("hello world")
+	        .withDelaySeconds(5);
+	sqs.sendMessage(send_msg_request);
+	System.out.println("Waiting for the echo...");		 
+	List<Message> messages = null;	
+	do {
+		messages = sqs.receiveMessage(queue_url_outbox).getMessages();		
+	} while (messages.isEmpty());
+	
+	Message message = messages.get(0);
+	System.out.format("The echo received is: %s", message.getBody());
+	sqs.deleteMessage(queue_url_outbox, message.getReceiptHandle());
+	//sqs.deleteQueue(queue_url_inbox);
+	//sqs.deleteQueue(queue_url_outbox);
+	//Deleting queues
+	/*sqs.deleteQueue(queue_url);
+	System.out.format("The Inbox queue with URL %s was deleted", queue_url);*/	
 	}	
 }
