@@ -40,7 +40,7 @@ import javax.servlet.http.Part;
 
 public class ClientApp 
 {		
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException {	
 	BasicAWSCredentials credentials = null;
 	String access_key_id = "AKIAINCOQWCQKLL4SBQQ";
 	String secret_access_key = "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";		
@@ -58,7 +58,7 @@ public class ClientApp
 	AmazonS3 s3 = new AmazonS3Client(credentials);
 	Region euWest1 = Region.getRegion(Regions.EU_WEST_1);
 	s3.setRegion(euWest1);
-	String bucket_name = null; 
+	String bucket_name = null;	
 	System.out.println("Listing existing buckets...");
 	for (Bucket bucket : s3.listBuckets())
 	{
@@ -67,16 +67,27 @@ public class ClientApp
 	}
 	if (bucket_name == null)
 	{
-		bucket_name = "bucketTA";
-	    System.out.format("The %s is going to create.\n", bucket_name);
+		bucket_name = "bucketatest2018";	    
 	    try
 	    {
 	        s3.createBucket(bucket_name);
+	        System.out.format("Creating %s.\n", bucket_name);
+	        
 	    } catch (AmazonS3Exception e)
 	    {
 	        System.err.println(e.getErrorMessage());
 	    }
 	}
-	}
-	
+	else
+	{
+		try 
+		{
+		    s3.deleteBucket(bucket_name);
+		    System.out.format("Deleting %s", bucket_name);
+		} catch (AmazonS3Exception e) 
+		{
+		    System.err.println(e.getErrorMessage());
+		}
+	}		
+	}	
 }
