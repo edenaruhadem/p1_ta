@@ -68,9 +68,11 @@ public class ClientApp
 	Region euWest1 = Region.getRegion(Regions.EU_WEST_1);
 	s3.setRegion(euWest1);		
 	sqs.setRegion(euWest1);
-	String nameFile = "index_file.txt";
+	//String nameFile = "index_file.txt";
 	//File file = new File("/src/main/java" + nameFile);
 	//String key_name = file.getName();
+	File file = new File("C:\\Users\\Diego\\Desktop\\aws\\assignment1\\src\\main\\java\\index\\Index_File.txt");
+	String key_name = file.getName();
 	String bucket_name = null;	
 	System.out.println("Listing existing buckets...");
 	boolean existBucket = false;
@@ -151,7 +153,7 @@ public class ClientApp
 	//Sending messages
 	SendMessageRequest send_msg_request = new SendMessageRequest()
 	        .withQueueUrl(queue_url_inbox)
-	        .withMessageBody("hello world")
+	        .withMessageBody("2@lavida es bella")
 	        .withDelaySeconds(5);
 	sqs.sendMessage(send_msg_request);
 	System.out.println("Waiting for the echo...");		 
@@ -161,29 +163,30 @@ public class ClientApp
 	} while (messages.isEmpty());
 	
 	Message message = messages.get(0);
-	String echo = message.getBody();
-	System.out.format("The echo received is: %s", echo);
+	String echot = message.getBody();
+	String[] receivedMessage = message.getBody().split("@"); 
+	String session = receivedMessage[0];  
+	String echo = receivedMessage[1];
+	System.out.format("The echo received is: %s", echot);
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	ObjectListing object_listing = s3.listObjects(bucket_name);	
 	for (S3ObjectSummary objectSummary : object_listing.getObjectSummaries()) 
 	{			
-		if (objectSummary.getKey().equals(nameFile)){
-			System.out.format("The file %s is already stored in the bucket.\n", nameFile);
+		if (objectSummary.getKey().equals("Index_File.txt")){
+			System.out.format("The file %s is already stored in the bucket.\n", "Index_File.txt");
 			exist_index = true;
 		}
 	}
-	if (exist_index == false) {
-		
-		File f = new File("/var/lib/tomcat7/webapps/myapp/files/FileIndex.txt"); 
-		printIndexFile(tagKey, tag);
-		System.out.println("Uploading a new object to S3 from a file\n");
-		s3.putObject(new PutObjectRequest("bucketta2017red", f.getName(), f));
-		
+	if (exist_index == false){		
+		createIndexFile(session, echo);
+		System.out.println("Uploading index file object to the bucket\n");
+		s3.putObject(bucket_name,key_name,file);		
 	}
+	
 	//Download the index file to update
 	S3Object o = s3.getObject(bucket_name,key_name);
 	InputStream readero = new BufferedInputStream(o.getObjectContent());
-	File fileindex = new File("/src/main/java/file_index_update/index_file.txt");	
+	File fileindex = new File("C:\\Users\\Diego\\Desktop\\aws\\assignment1\\src\\main\\java\\download\\Index_File.txt");	
 	OutputStream writero = new BufferedOutputStream(new FileOutputStream(fileindex));
 	int read1 = -1;
 	while ((read1 = readero.read()) != -1) 
@@ -193,16 +196,9 @@ public class ClientApp
 	writero.flush();
 	writero.close();
 	readero.close();	
-	printIndexFile(tagKey, tag); //Se actualiza con la nueva etiqueta
-
-	System.out.println("Uploading a new object to S3 from a file\n"); //Se vuelve a subir el fileindex
-	s3.putObject(new PutObjectRequest("bucketta2017red", fileIndex.getName(), fileIndex));
-	
-	
-	
-	
-	
-	
+	createIndexFile(session, echo); //Se actualiza con el nuevo mensaje
+	System.out.println("Uploading an update index to S3 from a file\n"); //Se vuelve a subir el fileindex
+	s3.putObject(bucket_name,key_name,file);	
 	sqs.deleteMessage(queue_url_outbox, message.getReceiptHandle());
 	//sqs.deleteQueue(queue_url_inbox);
 	//sqs.deleteQueue(queue_url_outbox);
@@ -210,41 +206,41 @@ public class ClientApp
 	/*sqs.deleteQueue(queue_url);
 	System.out.format("The Inbox queue with URL %s was deleted", queue_url);*/	
 	}
-	public static void printIndexFile(HashMap<String, String> tagKey, String tag) throws IOException {
-		
-		String savestr = "/var/lib/tomcat7/webapps/myapp/files/FileIndex.txt";
-		File f = new File(savestr); //Se genera el fileindex.txt de la forma tag:key
-
+	public static void createIndexFile(String session, String echo) throws IOException 
+	{		
+		String savestr = "C:\\Users\\Diego\\Desktop\\aws\\assignment1\\src\\main\\java\\index\\Index_File.txt";
+		File file = new File(savestr);
 		String linea;
-
-		if (f.exists() && !f.isDirectory()) {
-			FileReader file = null;
-			
-			try {
-				file = new FileReader(savestr);
-			} catch (FileNotFoundException e) {
+		if (file.exists() && !file.isDirectory()) 
+		{
+			FileReader rfile = null;			
+			try 
+			{
+				rfile = new FileReader(savestr);
+			} catch (FileNotFoundException e) 
+			{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			BufferedReader b = new BufferedReader(file);
+			BufferedReader b = new BufferedReader(rfile);
 			while ((linea = b.readLine()) != null) {
-
-				if (linea.equals(tag + ":" + tagKey.get(tag))) {
+				if (linea.equals(session + "-" + echo)) 
+				{
 					return;
 				}
-
 			}
 			b.close();
 		}
-
 		PrintWriter out = null;
-		if (f.exists() && !f.isDirectory()) {
+		if (file.exists() && !file.isDirectory()) 
+		{
 			out = new PrintWriter(new FileOutputStream(new File(savestr), true));
-			out.println(tag + ":" + tagKey.get(tag));
+			out.println(session + ":" + echo);
 			out.close();
-		} else {
+		} else 
+		{
 			out = new PrintWriter(savestr);
-			out.println(tag + ":" + tagKey.get(tag));
+			out.println(session + ":" + echo);
 			out.close();
 		}
 	}
