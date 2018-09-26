@@ -50,8 +50,8 @@ public class ClientApp
 {		
 	public static void main(String[] args) throws IOException {	
 	BasicAWSCredentials credentials = null;
-	String access_key_id = "";
-	String secret_access_key = "";		
+	String access_key_id = "AKIAIWXU27E46GQLRAAQ";
+	String secret_access_key = "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";		
     try 
     {        	
         credentials = new BasicAWSCredentials(access_key_id, secret_access_key);        
@@ -100,7 +100,7 @@ public class ClientApp
 	//Sending messages
 	SendMessageRequest send_msg_request = new SendMessageRequest()
 	        .withQueueUrl(queue_url_inbox)
-	        .withMessageBody("50@END")
+	        .withMessageBody("200@END")
 	        .withDelaySeconds(5);
 	sqs.sendMessage(send_msg_request);
 	System.out.println("Waiting for the echo...");		 
@@ -116,6 +116,11 @@ public class ClientApp
 		//sqs.deleteQueue(queue_url_inbox);
 		sqs.deleteQueue(queue_url_outbox);
 		System.out.println("The conexion was closed");
+	}
+	else if (echo.equals("DOWNLOAD"))
+	{		
+		System.out.println("The echo dialog was donwloaded");
+		sqs.deleteMessage(queue_url_outbox, message.getReceiptHandle());
 	}
 	else
 	{

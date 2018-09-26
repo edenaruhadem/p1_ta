@@ -45,8 +45,8 @@ import javax.servlet.http.Part;
 public class EchoSystem {
 	public static void main(String[] args) throws IOException {
 		BasicAWSCredentials credentials = null;
-		String access_key_id = "";
-		String secret_access_key = "";	
+		String access_key_id = "AKIAIWXU27E46GQLRAAQ";
+		String secret_access_key = "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";	
 		try 
 		{        	
 		   credentials = new BasicAWSCredentials(access_key_id, secret_access_key);        
@@ -138,7 +138,29 @@ public class EchoSystem {
 				       .withMessageBody("END")
 				       .withDelaySeconds(5);
 			sqs.sendMessage(send_msg_request);
+			sqs.deleteMessage(queue_url_inbox, message.getReceiptHandle());	
 			end = true;
+		}
+		else if (echo.equals("DOWNLOAD"))
+		{
+			S3Object d = s3.getObject(bucket_name,key_name);
+			InputStream readerd = new BufferedInputStream(d.getObjectContent());
+			File fileindex = new File("C:\\Users\\Diego\\Desktop\\aws\\assignment1\\src\\main\\java\\download\\Index_File_Download.txt");	
+			OutputStream writerd = new BufferedOutputStream(new FileOutputStream(fileindex));
+			int read1 = -1;
+			while ((read1 = readerd.read()) != -1) 
+			{			
+				writerd.write(read1);
+			}		
+			writerd.flush();
+			writerd.close();
+			readerd.close();
+			SendMessageRequest send_msg_request = new SendMessageRequest()
+				       .withQueueUrl(queue_url_outbox)
+				       .withMessageBody("DOWNLOAD")
+				       .withDelaySeconds(5);
+				sqs.sendMessage(send_msg_request);
+				sqs.deleteMessage(queue_url_inbox, message.getReceiptHandle());	
 		}
 		else
 		{
