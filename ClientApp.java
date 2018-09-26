@@ -43,8 +43,8 @@ public class ClientApp
 {		
 	public static void main(String[] args) throws IOException {	
 	BasicAWSCredentials credentials = null;
-	String access_key_id = "AKIAINCOQWCQKLL4SBQQ";
-	String secret_access_key = "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";		
+	String access_key_id = "";
+	String secret_access_key = "";		
     try 
     {        	
         credentials = new BasicAWSCredentials(access_key_id, secret_access_key);        
