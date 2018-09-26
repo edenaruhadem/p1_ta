@@ -68,7 +68,7 @@ public class EchoSystem {
 		String bucket_name = null;		
 		boolean existBucket = false;
 		boolean exist_index = false;
-		
+		boolean end = false;
 		System.out.println("Listing existing buckets...");
 		for (Bucket bucket : s3.listBuckets())
 		{
@@ -120,24 +120,33 @@ public class EchoSystem {
 		sqs.createQueue(create_request_outbox);
 		
 		String queue_url_inbox = sqs.getQueueUrl("Inbox").getQueueUrl();
-		String queue_url_outbox = sqs.getQueueUrl("Outbox").getQueueUrl();	
-		
-		System.out.println("The Inbox and Outbox queues were created. Waiting for a input message...");		
+		String queue_url_outbox = sqs.getQueueUrl("Outbox").getQueueUrl();				
+		do{
+		System.out.println("The Inbox and Outbox queues were created. Waiting for a input message...");
 		List<Message> messages = null;
 		do{
 			messages = sqs.receiveMessage(queue_url_inbox).getMessages();
 		}while(messages.isEmpty());
-		Message message = messages.get(0);
-		String echot = message.getBody();
+		Message message = messages.get(0);		
 		String[] receivedMessage = message.getBody().split("@"); 
 		String session = receivedMessage[0];  
 		String echo = receivedMessage[1];
-		
-		SendMessageRequest send_msg_request = new SendMessageRequest()
+		if (echo.equals("END"))
+		{			
+			SendMessageRequest send_msg_request = new SendMessageRequest()
+				       .withQueueUrl(queue_url_outbox)
+				       .withMessageBody("END")
+				       .withDelaySeconds(5);
+			sqs.sendMessage(send_msg_request);
+			end = true;
+		}
+		else
+		{
+			SendMessageRequest send_msg_request = new SendMessageRequest()
 			       .withQueueUrl(queue_url_outbox)
 			       .withMessageBody(echo)
 			       .withDelaySeconds(5);
-		sqs.sendMessage(send_msg_request);
+			sqs.sendMessage(send_msg_request);
 		
 		System.out.println("Sending echo...");			
 		sqs.deleteMessage(queue_url_inbox, message.getReceiptHandle());	
@@ -171,6 +180,10 @@ public class EchoSystem {
 		createIndexFile(session, echo); //Se actualiza con el nuevo mensaje
 		System.out.println("Uploading an update index to S3 from a file\n"); //Se vuelve a subir el fileindex
 		s3.putObject(bucket_name,key_name,file);
+		}
+		}while(end == false);
+		sqs.deleteQueue(queue_url_inbox);
+		//sqs.deleteQueue(queue_url_outbox);		
 	}
 		
 		public static void createIndexFile(String session, String echo) throws IOException 

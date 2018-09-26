@@ -100,7 +100,7 @@ public class ClientApp
 	//Sending messages
 	SendMessageRequest send_msg_request = new SendMessageRequest()
 	        .withQueueUrl(queue_url_inbox)
-	        .withMessageBody("3@lavida es bella")
+	        .withMessageBody("50@END")
 	        .withDelaySeconds(5);
 	sqs.sendMessage(send_msg_request);
 	System.out.println("Waiting for the echo...");		 
@@ -109,8 +109,19 @@ public class ClientApp
 		messages = sqs.receiveMessage(queue_url_outbox).getMessages();		
 	} while (messages.isEmpty());	
 	Message message = messages.get(0);
-	String echo = message.getBody();	
-	System.out.format("The echo received is: %s", echo);
-	sqs.deleteMessage(queue_url_outbox, message.getReceiptHandle());	
+	String echo = message.getBody();
+	if (echo.equals("END"))
+	{
+		sqs.deleteMessage(queue_url_outbox, message.getReceiptHandle());
+		//sqs.deleteQueue(queue_url_inbox);
+		sqs.deleteQueue(queue_url_outbox);
+		System.out.println("The conexion was closed");
+	}
+	else
+	{
+		System.out.format("The echo received is: %s", echo);
+		sqs.deleteMessage(queue_url_outbox, message.getReceiptHandle());		
+	}
+		
 }
 }
