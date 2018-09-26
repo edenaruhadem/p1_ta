@@ -41,7 +41,7 @@ public class EC2 {
 	public static void main(String[] args) throws IOException {
 	BasicAWSCredentials credentials = null;
 	String access_key_id = "";
-	String secret_access_key = "";		
+	String secret_access_key = "";	
 	try 
 	{        	
 	   credentials = new BasicAWSCredentials(access_key_id, secret_access_key);        
