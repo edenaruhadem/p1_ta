@@ -45,8 +45,8 @@ import javax.servlet.http.Part;
 public class EchoSystem {
 	public static void main(String[] args) throws IOException {
 		BasicAWSCredentials credentials = null;
-		String access_key_id = "AKIAIWXU27E46GQLRAAQ";
-		String secret_access_key = "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";	
+		String access_key_id = "";
+		String secret_access_key = "";	
 		try 
 		{        	
 		   credentials = new BasicAWSCredentials(access_key_id, secret_access_key);        
